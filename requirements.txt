@@ -1,0 +1,23 @@
+# Notebook runtime
+jupyterlab
+notebook
+ipykernel
+ipywidgets
+
+# Core model-loading stack
+torch
+torchvision
+diffusers[torch]
+transformers
+accelerate
+safetensors
+huggingface_hub
+
+# Common image/model utilities used by the diffusion pipelines
+Pillow
+numpy
+
+# Experiment/runtime utilities
+PyYAML
+tqdm
+wandb

@@ -1,0 +1,58 @@
+experiment:
+  name: flow_cifar10_smoke
+  seed: 0
+  output_dir: outputs/runs/flow_cifar10_smoke
+
+dataset:
+  name: cifar10
+  data_dir: data
+  image_size: 32
+  channels: 3
+  num_workers: 0
+  pin_memory: false
+
+model:
+  type: flow_matching
+  architecture: diffusers_unet
+  in_channels: 3
+  out_channels: 3
+  block_out_channels: [32, 64]
+  down_block_types:
+    - DownBlock2D
+    - DownBlock2D
+  up_block_types:
+    - UpBlock2D
+    - UpBlock2D
+  layers_per_block: 1
+
+flow_matching:
+  time_embedding_scale: 100.0
+  min_time: 0.0
+  max_time: 1.0
+
+training:
+  batch_size: 16
+  num_steps: 20
+  learning_rate: 0.0002
+  weight_decay: 0.0
+  grad_clip_norm: 1.0
+  mixed_precision: false
+  ema_decay: 0.0
+  log_every: 1
+  validate_every: 10
+  sample_every: 20
+  checkpoint_every: 20
+
+sampling:
+  num_steps: 10
+  num_samples: 8
+  batch_size: 8
+
+wandb:
+  enabled: false
+  project: stat542-generative-comparison
+  entity: null
+  tags:
+    - flow-matching
+    - cifar10
+    - smoke-test
