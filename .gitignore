@@ -9,10 +9,10 @@ venv/
 env/
 
 # Large/generated artifacts
-.hf_cache/
-data/
-outputs/
-wandb/
+/.hf_cache/
+/data/
+/outputs/
+/wandb/
 *.pt
 *.pth
 *.ckpt
