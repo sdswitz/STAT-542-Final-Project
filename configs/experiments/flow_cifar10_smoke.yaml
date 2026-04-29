@@ -49,9 +49,9 @@ sampling:
   batch_size: 8
 
 wandb:
-  enabled: false
-  project: stat542-generative-comparison
-  entity: null
+  enabled: true
+  project: stat542-diffusion-comparison
+  entity: sswitz-stat542-final-project
   tags:
     - flow-matching
     - cifar10
