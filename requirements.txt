@@ -5,7 +5,7 @@ ipykernel
 ipywidgets
 
 # Core model-loading stack
-torch
+torch==2.10.0
 torchvision
 diffusers[torch]
 transformers
