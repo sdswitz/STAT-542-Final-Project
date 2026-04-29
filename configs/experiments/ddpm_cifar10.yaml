@@ -1,6 +1,6 @@
 experiment:
   name: ddpm_cifar10_seed0
-  seed: 0
+  seed: 542
   output_dir: outputs/runs/ddpm_cifar10_seed0
 
 dataset:

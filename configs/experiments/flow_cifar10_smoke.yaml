@@ -1,6 +1,6 @@
 experiment:
   name: flow_cifar10_smoke
-  seed: 0
+  seed: 542
   output_dir: outputs/runs/flow_cifar10_smoke
 
 dataset:
