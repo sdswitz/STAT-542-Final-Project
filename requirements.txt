@@ -1,23 +1,23 @@
+# Core numerical stack
+numpy==1.26.4
+torch==2.10.0
+torchvision==0.25.0
+
+# Hugging Face / Diffusers stack
+diffusers
+transformers==4.57.6
+accelerate
+safetensors==0.7.0
+huggingface_hub
+
+# Image/model utilities
+Pillow
+PyYAML
+tqdm==4.67.3
+wandb
+
 # Notebook runtime
 jupyterlab
 notebook
 ipykernel
 ipywidgets
-
-# Core model-loading stack
-torch==2.10.0
-torchvision
-diffusers[torch]
-transformers
-accelerate
-safetensors
-huggingface_hub
-
-# Common image/model utilities used by the diffusion pipelines
-Pillow
-numpy
-
-# Experiment/runtime utilities
-PyYAML
-tqdm
-wandb
