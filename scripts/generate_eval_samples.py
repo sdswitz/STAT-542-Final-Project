@@ -17,11 +17,14 @@ from src.core.checkpointing import load_model_checkpoint
 from src.core.config import load_config
 from src.core.device import get_device
 from src.core.seeding import seed_everything
-from src.models.ddpm.model import build_ddpm_components
-from src.models.ddpm.sampler import sample_ddpm
-from src.models.flow_matching.model import build_flow_matching_components
-from src.models.flow_matching.sampler import sample_flow_matching
 from src.sampling.save_images import save_image_batch, save_sample_grid
+
+
+EVAL_NUM_SAMPLES = 50_000
+EVAL_BATCH_SIZE = 256
+EVAL_NUM_STEPS = 100
+PREVIEW_SAMPLES = 64
+FINAL_CHECKPOINT_NAME = "step_00100000.pt"
 
 
 def parse_args() -> argparse.Namespace:
@@ -29,37 +32,52 @@ def parse_args() -> argparse.Namespace:
         description="Generate individual PNG samples for evaluation metrics.",
     )
     parser.add_argument(
-        "--model-type",
-        choices=("ddpm", "flow_matching"),
-        required=True,
+        "model_type",
+        choices=("ddpm", "flow"),
         help="Which trained model family to sample from.",
     )
     parser.add_argument(
-        "--config",
-        required=True,
-        help="Path to the experiment config used for model construction.",
-    )
-    parser.add_argument(
-        "--checkpoint",
-        required=True,
-        help="Path to the trained checkpoint.",
-    )
-    parser.add_argument(
-        "--output-dir",
-        required=True,
-        help="Directory where individual PNG samples will be written.",
-    )
-    parser.add_argument("--num-samples", type=int, required=True)
-    parser.add_argument("--batch-size", type=int, default=None)
-    parser.add_argument("--num-steps", type=int, default=None)
-    parser.add_argument("--seed", type=int, default=None)
-    parser.add_argument(
-        "--preview-samples",
+        "seed",
         type=int,
-        default=64,
-        help="Number of generated images to include in preview_grid.png. Use 0 to disable.",
+        help="Training seed for the run to sample, e.g. 0 or 542.",
     )
     return parser.parse_args()
+
+
+def canonical_model_type(model_type: str) -> str:
+    if model_type == "flow":
+        return "flow_matching"
+    return model_type
+
+
+def run_name(model_type: str, seed: int) -> str:
+    prefix = "flow" if model_type == "flow_matching" else model_type
+    return f"{prefix}_cifar10_seed{seed}"
+
+
+def config_path_for(model_type: str) -> Path:
+    prefix = "flow" if model_type == "flow_matching" else model_type
+    return PROJECT_ROOT / "configs" / "experiments" / f"{prefix}_cifar10.yaml"
+
+
+def checkpoint_path_for(model_type: str, seed: int) -> Path:
+    name = run_name(model_type, seed)
+    return PROJECT_ROOT / "outputs" / "runs" / name / "checkpoints" / FINAL_CHECKPOINT_NAME
+
+
+def output_dir_for(model_type: str, seed: int) -> Path:
+    name = run_name(model_type, seed)
+    return PROJECT_ROOT / "outputs" / "eval" / "samples" / name
+
+
+def load_run_config(model_type: str, seed: int) -> tuple[dict[str, Any], Path]:
+    config_path = config_path_for(model_type)
+    config = load_config(config_path)
+    name = run_name(model_type, seed)
+    config["experiment"]["seed"] = seed
+    config["experiment"]["name"] = name
+    config["experiment"]["output_dir"] = str(PROJECT_ROOT / "outputs" / "runs" / name)
+    return config, config_path
 
 
 def existing_pngs(output_dir: Path) -> list[Path]:
@@ -70,12 +88,16 @@ def existing_pngs(output_dir: Path) -> list[Path]:
 
 def build_model_and_sampler(config: dict[str, Any], model_type: str, checkpoint: str, device: torch.device):
     if model_type == "ddpm":
+        from src.models.ddpm.model import build_ddpm_components
+
         model, scheduler = build_ddpm_components(config)
         load_model_checkpoint(checkpoint, model, map_location=device)
         model = model.to(device)
         return model, scheduler
 
     if model_type == "flow_matching":
+        from src.models.flow_matching.model import build_flow_matching_components
+
         model = build_flow_matching_components(config)
         load_model_checkpoint(checkpoint, model, map_location=device)
         model = model.to(device)
@@ -98,6 +120,8 @@ def generate_batch(
     seed: int,
 ) -> torch.Tensor:
     if model_type == "ddpm":
+        from src.models.ddpm.sampler import sample_ddpm
+
         return sample_ddpm(
             model,
             scheduler,
@@ -109,6 +133,8 @@ def generate_batch(
         )
 
     if model_type == "flow_matching":
+        from src.models.flow_matching.sampler import sample_flow_matching
+
         return sample_flow_matching(
             model,
             num_samples=batch_size,
@@ -127,16 +153,18 @@ def write_metadata(
     *,
     args: argparse.Namespace,
     config: dict[str, Any],
+    config_path: Path,
+    checkpoint_path: Path,
     device: torch.device,
     num_steps: int,
     batch_size: int,
     seed: int,
 ) -> None:
     metadata = {
-        "model_type": args.model_type,
-        "config": args.config,
-        "checkpoint": args.checkpoint,
-        "num_samples": args.num_samples,
+        "model_type": canonical_model_type(args.model_type),
+        "config": str(config_path),
+        "checkpoint": str(checkpoint_path),
+        "num_samples": EVAL_NUM_SAMPLES,
         "batch_size": batch_size,
         "num_steps": num_steps,
         "seed": seed,
@@ -154,9 +182,13 @@ def write_metadata(
 
 def main() -> None:
     args = parse_args()
-    config = load_config(args.config)
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    model_type = canonical_model_type(args.model_type)
+    config, config_path = load_run_config(model_type, args.seed)
+    checkpoint_path = checkpoint_path_for(model_type, args.seed)
+    output_dir = output_dir_for(model_type, args.seed)
+
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"Expected checkpoint does not exist: {checkpoint_path}")
 
     pngs = existing_pngs(output_dir)
     if pngs:
@@ -164,15 +196,25 @@ def main() -> None:
             f"{output_dir} already contains {len(pngs)} PNG files. "
             "Use a new output directory to avoid mixing sample sets."
         )
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    seed = config["experiment"]["seed"] if args.seed is None else args.seed
-    batch_size = args.batch_size or config["sampling"]["batch_size"]
-    num_steps = args.num_steps or config["sampling"]["num_steps"]
-    filename_width = max(6, len(str(args.num_samples - 1)))
+    seed = args.seed
+    batch_size = EVAL_BATCH_SIZE
+    num_steps = EVAL_NUM_STEPS
+    filename_width = max(6, len(str(EVAL_NUM_SAMPLES - 1)))
 
     seed_everything(seed)
     device = get_device()
-    model, scheduler = build_model_and_sampler(config, args.model_type, args.checkpoint, device)
+    model, scheduler = build_model_and_sampler(config, model_type, str(checkpoint_path), device)
+
+    print(f"model_type: {model_type}")
+    print(f"seed: {seed}")
+    print(f"config: {config_path}")
+    print(f"checkpoint: {checkpoint_path}")
+    print(f"output_dir: {output_dir}")
+    print(f"num_samples: {EVAL_NUM_SAMPLES}")
+    print(f"batch_size: {batch_size}")
+    print(f"num_steps: {num_steps}")
 
     image_shape = (
         config["dataset"]["channels"],
@@ -182,11 +224,11 @@ def main() -> None:
 
     preview_batches = []
     generated = 0
-    progress = tqdm(total=args.num_samples, desc=f"generate {args.model_type}")
-    while generated < args.num_samples:
-        current_batch_size = min(batch_size, args.num_samples - generated)
+    progress = tqdm(total=EVAL_NUM_SAMPLES, desc=f"generate {model_type}")
+    while generated < EVAL_NUM_SAMPLES:
+        current_batch_size = min(batch_size, EVAL_NUM_SAMPLES - generated)
         samples = generate_batch(
-            model_type=args.model_type,
+            model_type=model_type,
             model=model,
             scheduler=scheduler,
             config=config,
@@ -203,7 +245,7 @@ def main() -> None:
             filename_width=filename_width,
         )
 
-        if args.preview_samples > 0 and sum(batch.shape[0] for batch in preview_batches) < args.preview_samples:
+        if PREVIEW_SAMPLES > 0 and sum(batch.shape[0] for batch in preview_batches) < PREVIEW_SAMPLES:
             preview_batches.append(samples.detach().cpu())
 
         generated += current_batch_size
@@ -214,14 +256,16 @@ def main() -> None:
         output_dir,
         args=args,
         config=config,
+        config_path=config_path,
+        checkpoint_path=checkpoint_path,
         device=device,
         num_steps=num_steps,
         batch_size=batch_size,
         seed=seed,
     )
 
-    if args.preview_samples > 0 and preview_batches:
-        preview = torch.cat(preview_batches, dim=0)[: args.preview_samples]
+    if PREVIEW_SAMPLES > 0 and preview_batches:
+        preview = torch.cat(preview_batches, dim=0)[:PREVIEW_SAMPLES]
         save_sample_grid(preview, output_dir.parent / f"{output_dir.name}_preview_grid.png")
 
 
