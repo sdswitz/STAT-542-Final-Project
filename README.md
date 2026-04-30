@@ -10,17 +10,17 @@ As of 4/29, the plan is to:
 
 ## TODO
 
-- [ ] Smoke-test DDPM training on the compute cluster.
-- [ ] Start the full DDPM CIFAR-10 run.
-- [ ] Smoke-test flow matching training on the compute cluster.
-- [ ] Start the full flow matching CIFAR-10 run.
-- [ ] Enable Weights & Biases tracking in the experiment configs:
+- [x] Smoke-test DDPM training on the compute cluster.
+- [x] Start the full DDPM CIFAR-10 run.
+- [x] Smoke-test flow matching training on the compute cluster.
+- [x] Start the full flow matching CIFAR-10 run.
+- [x] Enable Weights & Biases tracking in the experiment configs:
     - set `wandb.enabled: true`
     - set `wandb.project: stat542-generative-comparison`
     - set `wandb.entity` if using a team account, otherwise leave it as `null`
-- [ ] Log in to W&B on the cluster with `wandb login` or set `WANDB_API_KEY` in the shell.
+- [x] Log in to W&B on the cluster with `wandb login` or set `WANDB_API_KEY` in the shell.
 - [ ] Add local JSONL or CSV logging for training and validation metrics under `outputs/runs/<run_name>/metrics/`.
 - [ ] Decide whether to log generated image grids and checkpoints as W&B artifacts.
-- [ ] Implement the shared KID/FID evaluation protocol.
+- [ ] **Implement the shared KID/FID evaluation protocol.**
 - [ ] Write the more in-depth evaluation functions for final model comparison.
-- [ ] Add the Tiny DiT baseline after DDPM and flow matching are stable.
+- [ ] **Add the Tiny DiT baseline after DDPM and flow matching are stable.**
