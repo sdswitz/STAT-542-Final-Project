@@ -7,12 +7,28 @@ trial run just to make sure it's working:
 full run:
 `python scripts/train_ddpm.py --config configs/experiments/ddpm_cifar10.yaml`
 
+full run on a dataset fraction:
+`python scripts/train_ddpm.py --config configs/experiments/ddpm_cifar10.yaml --data-percent 10`
+
 ### Flow matching:
 trial run just to make sure it's working:
 `python scripts/train_flow_matching.py --config configs/experiments/flow_cifar10_smoke.yaml`
 
 full run:
 `python scripts/train_flow_matching.py --config configs/experiments/flow_cifar10.yaml`
+
+full run on a dataset fraction:
+`python scripts/train_flow_matching.py --config configs/experiments/flow_cifar10.yaml --data-percent 10`
+
+### Dataset fraction runs:
+Use `--data-percent` to train on a deterministic, class-balanced subset of CIFAR-10. Good first values:
+`10`, `25`, `50`, `100`
+
+For example, DDPM with 10% of the training data writes to:
+`outputs/runs/ddpm_cifar10_seed0_pct10/`
+
+Flow matching with 25% of the training data writes to:
+`outputs/runs/flow_cifar10_seed0_pct25/`
 
 ## Commands to generate samples for evaluation
 
