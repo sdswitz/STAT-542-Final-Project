@@ -22,5 +22,9 @@ As of 4/29, the plan is to:
 - [ ] Add local JSONL or CSV logging for training and validation metrics under `outputs/runs/<run_name>/metrics/`.
 - [ ] Decide whether to log generated image grids and checkpoints as W&B artifacts.
 - [ ] **Implement the shared KID/FID evaluation protocol.**
-- [ ] Write the more in-depth evaluation functions for final model comparison.
+- [ ] Write the more in-depth evaluation functions for final model comparison. (we might just use torch_fidelity instead)
 - [ ] **Add the Tiny DiT baseline after DDPM and flow matching are stable.**
+- [ ] Classifier-based semantic distribution analysis:
+    since we have unconditional image generation, we can't do classification accuracy. but we can measure the KL divergence from actual class distribution. we should also just find the predicted class distribution from a classifier and report it. maybe also class entropy, classifier confidence?
+- [ ] Marginal summary statistics
+    
