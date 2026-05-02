@@ -66,15 +66,19 @@ Generated flow seed 0 samples:
 
 By default, the eval generation script writes 50,000 PNGs with batch size 256 and 100 sampling steps. It also writes `metadata.json` inside the sample folder and a preview grid next to the sample folder.
 
-## Commands to run torch-fidelity evaluation
 
-These commands compute torch-fidelity metrics on a generated sample folder against a real/reference image folder.
+
+## Evaluation Process:
+
+First, rerun `pip install -r requirements.txt` to make sure torch_fidelity is installed (only need to do this once)
+
+Then, create a folder with the actual CIFAR-10 images (only need to do this once):
+`python scripts/export_cifar10_reference.py`
 
 The default real/reference folder is:
 `outputs/eval/reference/cifar10_test_32`
 
-Create it once with:
-`python scripts/export_cifar10_reference.py`
+Then the following should work:
 
 ### DDPM:
 evaluate DDPM seed 0 samples:
@@ -89,6 +93,8 @@ evaluate flow seed 0 samples:
 
 evaluate flow seed 542 samples:
 `python scripts/evaluate_flow_matching.py --fake-dir outputs/eval/samples/flow_cifar10_seed542`
+
+
 
 The output metrics JSON defaults to:
 `outputs/eval/metrics/<sample-folder-name>_torch_fidelity.json`
