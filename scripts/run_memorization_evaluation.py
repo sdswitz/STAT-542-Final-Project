@@ -48,6 +48,22 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run CIFAR-10 subset memorization evaluation from a manifest.")
     parser.add_argument("--manifest", type=str, required=True)
     parser.add_argument("--output-root", type=str, default=None)
+    parser.add_argument(
+        "--model-type",
+        choices=("ddpm", "flow", "flow_matching"),
+        action="append",
+        default=None,
+        help="Only evaluate this model type. Can be passed multiple times.",
+    )
+    parser.add_argument("--seed", type=int, action="append", default=None, help="Only evaluate this seed.")
+    parser.add_argument(
+        "--data-percent",
+        type=float,
+        action="append",
+        default=None,
+        help="Only evaluate this CIFAR-10 training percentage.",
+    )
+    parser.add_argument("--run-id", action="append", default=None, help="Only evaluate this run_id.")
     parser.add_argument("--num-samples", type=int, default=10_000)
     parser.add_argument("--sample-batch-size", type=int, default=256)
     parser.add_argument("--sampling-steps", type=int, default=100)
@@ -60,6 +76,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--force-samples", action="store_true")
     parser.add_argument("--force-metrics", action="store_true")
     parser.add_argument("--force-references", action="store_true")
+    parser.add_argument(
+        "--skip-missing-checkpoints",
+        action="store_true",
+        help="Skip selected runs whose checkpoint paths are not present on this machine.",
+    )
     return parser.parse_args()
 
 
@@ -74,9 +95,141 @@ def load_manifest(path: str | Path) -> dict[str, Any]:
             manifest = json.load(handle)
     if not isinstance(manifest, dict):
         raise ValueError(f"Manifest must load to a dictionary: {path}")
-    if not isinstance(manifest.get("runs"), list):
-        raise ValueError("Manifest must contain a 'runs' list.")
+    if not isinstance(manifest.get("runs", []), list):
+        raise ValueError("Manifest 'runs' must be a list when present.")
+    if not isinstance(manifest.get("run_matrix", []), list):
+        raise ValueError("Manifest 'run_matrix' must be a list when present.")
+    if not manifest.get("runs") and not manifest.get("run_matrix"):
+        raise ValueError("Manifest must contain either a 'runs' list or a 'run_matrix' list.")
     return manifest
+
+
+def canonical_model_type(model_type: str) -> str:
+    if model_type == "flow":
+        return "flow_matching"
+    return model_type
+
+
+def percent_value(data_percent: float) -> str:
+    value = float(data_percent)
+    if value.is_integer():
+        return str(int(value))
+    return str(value).replace(".", "p")
+
+
+def template_context(*, model_type: str, seed: int, subset_seed: int, data_percent: float) -> dict[str, Any]:
+    return {
+        "model": model_type,
+        "model_type": model_type,
+        "canonical_model_type": canonical_model_type(model_type),
+        "seed": seed,
+        "subset_seed": subset_seed,
+        "data_percent": data_percent,
+        "pct": percent_value(data_percent),
+        "pct_tag": data_percent_tag(data_percent),
+    }
+
+
+def format_template(value: str, context: dict[str, Any]) -> str:
+    return value.format(**context)
+
+
+def normalize_runs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    runs = [dict(run) for run in manifest.get("runs", [])]
+
+    for matrix in manifest.get("run_matrix", []):
+        if "model_type" not in matrix:
+            raise ValueError(f"Each run_matrix entry must define model_type: {matrix}")
+
+        seeds = matrix.get("seeds", [matrix.get("seed", 0)])
+        data_percents = matrix.get("data_percents", matrix.get("data_percent"))
+        if data_percents is None:
+            raise ValueError(f"Each run_matrix entry must define data_percents or data_percent: {matrix}")
+        if not isinstance(seeds, list):
+            seeds = [seeds]
+        if not isinstance(data_percents, list):
+            data_percents = [data_percents]
+
+        for seed in seeds:
+            for data_percent in data_percents:
+                seed = int(seed)
+                data_percent = float(data_percent)
+                subset_seed = int(matrix.get("subset_seed", seed))
+                context = template_context(
+                    model_type=matrix["model_type"],
+                    seed=seed,
+                    subset_seed=subset_seed,
+                    data_percent=data_percent,
+                )
+                run = {
+                    key: value
+                    for key, value in matrix.items()
+                    if key
+                    not in {
+                        "seeds",
+                        "seed",
+                        "data_percents",
+                        "data_percent",
+                        "run_id_template",
+                        "run_dir_template",
+                        "checkpoint_glob_template",
+                    }
+                }
+                run["seed"] = seed
+                run["subset_seed"] = subset_seed
+                run["data_percent"] = data_percent
+                run["run_id"] = format_template(
+                    matrix.get("run_id_template", "{model_type}_{pct_tag}_seed{seed}"),
+                    context,
+                )
+                if "run_dir_template" in matrix:
+                    run["run_dir"] = format_template(matrix["run_dir_template"], context)
+                if "checkpoint_glob_template" in matrix:
+                    run["checkpoint_glob"] = format_template(matrix["checkpoint_glob_template"], context)
+                runs.append(run)
+
+    return runs
+
+
+def list_from_selection(selection: dict[str, Any], key: str) -> list[Any] | None:
+    value = selection.get(key)
+    if value in (None, [], ""):
+        return None
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def merged_filters(manifest: dict[str, Any], args: argparse.Namespace) -> dict[str, set[Any] | None]:
+    selection = manifest.get("selection") or {}
+    if not isinstance(selection, dict):
+        raise ValueError("Manifest 'selection' must be a dictionary when present.")
+
+    model_types = args.model_type if args.model_type is not None else list_from_selection(selection, "model_types")
+    seeds = args.seed if args.seed is not None else list_from_selection(selection, "seeds")
+    data_percents = (
+        args.data_percent if args.data_percent is not None else list_from_selection(selection, "data_percents")
+    )
+    run_ids = args.run_id if args.run_id is not None else list_from_selection(selection, "run_ids")
+
+    return {
+        "model_types": {canonical_model_type(str(model_type)) for model_type in model_types} if model_types else None,
+        "seeds": {int(seed) for seed in seeds} if seeds else None,
+        "data_percents": {float(data_percent) for data_percent in data_percents} if data_percents else None,
+        "run_ids": {str(run_id) for run_id in run_ids} if run_ids else None,
+    }
+
+
+def run_matches_filters(run: dict[str, Any], filters: dict[str, set[Any] | None]) -> bool:
+    if filters["model_types"] is not None and canonical_model_type(str(run["model_type"])) not in filters["model_types"]:
+        return False
+    if filters["seeds"] is not None and int(run.get("seed", run.get("subset_seed", 0))) not in filters["seeds"]:
+        return False
+    if filters["data_percents"] is not None and float(run["data_percent"]) not in filters["data_percents"]:
+        return False
+    if filters["run_ids"] is not None and str(run["run_id"]) not in filters["run_ids"]:
+        return False
+    return True
 
 
 def safe_name(value: str) -> str:
@@ -220,7 +373,7 @@ def load_or_compute_checkpoint_metrics(
     train_reference_dir: Path,
     args: argparse.Namespace,
 ) -> dict[str, Any]:
-    model_type = "flow_matching" if run["model_type"] == "flow" else run["model_type"]
+    model_type = canonical_model_type(run["model_type"])
     run_id = safe_name(run["run_id"])
     data_percent = float(run["data_percent"])
     subset_seed = int(run.get("subset_seed", run.get("seed", 0)))
@@ -348,10 +501,24 @@ def main() -> None:
     output_root = Path(args.output_root or manifest.get("output_root", "outputs/eval/memorization"))
     output_root.mkdir(parents=True, exist_ok=True)
 
+    filters = merged_filters(manifest, args)
+    runs = [run for run in normalize_runs(manifest) if run_matches_filters(run, filters)]
+    if not runs:
+        raise ValueError("No manifest runs matched the selected model/seed/data-percent filters.")
+
     rows = []
-    for run in manifest["runs"]:
+    skipped = []
+    for run in runs:
         if "run_id" not in run or "model_type" not in run or "data_percent" not in run:
             raise ValueError(f"Each run must define run_id, model_type, and data_percent: {run}")
+
+        try:
+            checkpoint_paths = discover_checkpoints(run, args.limit_checkpoints)
+        except FileNotFoundError as exc:
+            if args.skip_missing_checkpoints:
+                skipped.append(str(exc))
+                continue
+            raise
 
         subset_seed = int(run.get("subset_seed", run.get("seed", 0)))
         image_size = int(run.get("image_size", 32))
@@ -372,7 +539,7 @@ def main() -> None:
             force=args.force_references,
         )
 
-        for checkpoint_path in discover_checkpoints(run, args.limit_checkpoints):
+        for checkpoint_path in checkpoint_paths:
             row = load_or_compute_checkpoint_metrics(
                 run=run,
                 checkpoint_path=checkpoint_path,
@@ -383,9 +550,19 @@ def main() -> None:
             )
             rows.append(row)
 
+    if not rows:
+        message = "No checkpoint metrics were written."
+        if skipped:
+            message += " All selected runs were skipped because checkpoints were missing."
+        raise ValueError(message)
+
     aggregate_path = output_root / "metrics" / "aggregate_metrics.csv"
     write_aggregate(rows, aggregate_path)
     print(f"Wrote aggregate metrics to {aggregate_path}")
+    if skipped:
+        print("Skipped missing checkpoint runs:")
+        for item in skipped:
+            print(f"- {item}")
 
 
 if __name__ == "__main__":

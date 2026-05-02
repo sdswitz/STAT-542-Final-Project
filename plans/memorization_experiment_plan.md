@@ -33,7 +33,8 @@ outputs/eval/memorization/reference/
 ```
 
 - Compute memorization using PNG-space L2 nearest and second-nearest training-image distances.
-- Drive the full experiment from a manifest containing run IDs, model types, data percentages, subset seeds, and run directories.
+- Drive the full experiment from a manifest containing either explicit runs or a compact `run_matrix` over model types, seeds, and data percentages.
+- Allow each teammate to evaluate only the weights available on their cluster by using manifest `selection` filters or CLI filters such as `--model-type ddpm --seed 0`.
 - Save per-checkpoint JSON metrics and an aggregate CSV under `outputs/eval/memorization/metrics/`.
 - Save plots under `outputs/eval/memorization/plots/`.
 
