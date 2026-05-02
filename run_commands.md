@@ -65,3 +65,33 @@ Generated flow seed 0 samples:
 `outputs/eval/samples/flow_cifar10_seed0/`
 
 By default, the eval generation script writes 50,000 PNGs with batch size 256 and 100 sampling steps. It also writes `metadata.json` inside the sample folder and a preview grid next to the sample folder.
+
+## Commands to run torch-fidelity evaluation
+
+These commands compute torch-fidelity metrics on a generated sample folder against a real/reference image folder.
+
+The default real/reference folder is:
+`outputs/eval/reference/cifar10_test_32`
+
+Create it once with:
+`python scripts/export_cifar10_reference.py`
+
+### DDPM:
+evaluate DDPM seed 0 samples:
+`python scripts/evaluate_ddpm.py --fake-dir outputs/eval/samples/ddpm_cifar10_seed0`
+
+evaluate DDPM seed 542 samples:
+`python scripts/evaluate_ddpm.py --fake-dir outputs/eval/samples/ddpm_cifar10_seed542`
+
+### Flow matching:
+evaluate flow seed 0 samples:
+`python scripts/evaluate_flow_matching.py --fake-dir outputs/eval/samples/flow_cifar10_seed0`
+
+evaluate flow seed 542 samples:
+`python scripts/evaluate_flow_matching.py --fake-dir outputs/eval/samples/flow_cifar10_seed542`
+
+The output metrics JSON defaults to:
+`outputs/eval/metrics/<sample-folder-name>_torch_fidelity.json`
+
+For quick validation on a small sample folder, reduce KID subset settings:
+`python scripts/evaluate_ddpm.py --fake-dir outputs/eval/samples/ddpm_cifar10_seed0 --kid-subsets 10 --kid-subset-size 100`
