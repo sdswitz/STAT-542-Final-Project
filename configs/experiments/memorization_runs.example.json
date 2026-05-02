@@ -1,0 +1,59 @@
+{
+  "output_root": "outputs/eval/memorization",
+  "runs": [
+    {
+      "run_id": "ddpm_pct10_seed0",
+      "model_type": "ddpm",
+      "run_dir": "outputs/runs/ddpm_cifar10_seed0_pct10",
+      "data_percent": 10,
+      "subset_seed": 0,
+      "seed": 0,
+      "config": "configs/experiments/ddpm_cifar10.yaml"
+    },
+    {
+      "run_id": "ddpm_pct25_seed0",
+      "model_type": "ddpm",
+      "run_dir": "outputs/runs/ddpm_cifar10_seed0_pct25",
+      "data_percent": 25,
+      "subset_seed": 0,
+      "seed": 0,
+      "config": "configs/experiments/ddpm_cifar10.yaml"
+    },
+    {
+      "run_id": "ddpm_pct50_seed0",
+      "model_type": "ddpm",
+      "run_dir": "outputs/runs/ddpm_cifar10_seed0_pct50",
+      "data_percent": 50,
+      "subset_seed": 0,
+      "seed": 0,
+      "config": "configs/experiments/ddpm_cifar10.yaml"
+    },
+    {
+      "run_id": "flow_pct10_seed0",
+      "model_type": "flow",
+      "run_dir": "outputs/runs/flow_cifar10_seed0_pct10",
+      "data_percent": 10,
+      "subset_seed": 0,
+      "seed": 0,
+      "config": "configs/experiments/flow_cifar10.yaml"
+    },
+    {
+      "run_id": "flow_pct25_seed0",
+      "model_type": "flow",
+      "run_dir": "outputs/runs/flow_cifar10_seed0_pct25",
+      "data_percent": 25,
+      "subset_seed": 0,
+      "seed": 0,
+      "config": "configs/experiments/flow_cifar10.yaml"
+    },
+    {
+      "run_id": "flow_pct50_seed0",
+      "model_type": "flow",
+      "run_dir": "outputs/runs/flow_cifar10_seed0_pct50",
+      "data_percent": 50,
+      "subset_seed": 0,
+      "seed": 0,
+      "config": "configs/experiments/flow_cifar10.yaml"
+    }
+  ]
+}
