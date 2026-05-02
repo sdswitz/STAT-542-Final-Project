@@ -23,6 +23,7 @@ def build_dataloaders(config: dict[str, Any], device: torch.device | None = None
         "pin_memory": pin_memory,
     }
 
-    train_loader = DataLoader(train_dataset, shuffle=True, drop_last=True, **loader_kwargs)
+    drop_last = len(train_dataset) >= training_config["batch_size"]
+    train_loader = DataLoader(train_dataset, shuffle=True, drop_last=drop_last, **loader_kwargs)
     val_loader = DataLoader(val_dataset, shuffle=False, drop_last=False, **loader_kwargs)
     return train_loader, val_loader

@@ -8,6 +8,7 @@ dataset:
   data_dir: data
   image_size: 32
   channels: 3
+  train_percent: 100.0
   num_workers: 0
   pin_memory: false
 

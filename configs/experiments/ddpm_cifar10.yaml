@@ -1,13 +1,14 @@
 experiment:
-  name: ddpm_cifar10_seed0
-  seed: 0
-  output_dir: outputs/runs/ddpm_cifar10_seed0
+  name: ddpm_cifar10_seed542
+  seed: 542
+  output_dir: outputs/runs/ddpm_cifar10_seed542
 
 dataset:
   name: cifar10
   data_dir: data
   image_size: 32
   channels: 3
+  train_percent: 100.0
   num_workers: 4
   pin_memory: true
 
