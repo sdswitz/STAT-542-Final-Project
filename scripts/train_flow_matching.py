@@ -15,6 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.core.checkpointing import save_checkpoint
 from src.core.config import load_config, prepare_output_dir
+from src.core.data_fraction import apply_data_percent_override
 from src.core.device import autocast_device_type, get_device
 from src.core.seeding import seed_everything
 from src.core.wandb_logging import init_wandb, wandb_log
@@ -33,6 +34,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="configs/experiments/flow_cifar10.yaml",
         help="Path to a YAML experiment config.",
+    )
+    parser.add_argument(
+        "--data-percent",
+        type=float,
+        default=None,
+        help="Percentage of the training set to use, e.g. 10, 25, 50, or 100.",
     )
     return parser.parse_args()
 
@@ -97,6 +104,10 @@ def train(config: dict[str, Any]) -> None:
 
     device = get_device()
     train_loader, val_loader = build_dataloaders(config, device=device)
+    print(
+        f"Using {len(train_loader.dataset)} training images "
+        f"({config['dataset'].get('train_percent', 100.0)}% of train split)."
+    )
     model = build_flow_matching_components(config).to(device)
     objective = build_objective(config)
     optimizer = build_optimizer(model, config)
@@ -193,6 +204,7 @@ def train(config: dict[str, Any]) -> None:
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
+    config = apply_data_percent_override(config, args.data_percent)
     train(config)
 
 

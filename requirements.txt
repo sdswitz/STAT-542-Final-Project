@@ -15,6 +15,7 @@ Pillow
 PyYAML
 tqdm==4.67.3
 wandb
+torch-fidelity
 
 # Notebook runtime
 jupyterlab
