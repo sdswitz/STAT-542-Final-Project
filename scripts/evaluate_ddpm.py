@@ -35,6 +35,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--kid-subsets", type=int, default=100)
     parser.add_argument("--kid-subset-size", type=int, default=1000)
     parser.add_argument("--cpu", action="store_true", help="Force torch-fidelity to run on CPU.")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=64,
+        help="torch-fidelity feature-extraction batch size (lower if you hit CUDA OOM).",
+    )
+    parser.add_argument(
+        "--save-cpu-ram",
+        action="store_true",
+        help="Pass torch-fidelity save_cpu_ram=True (trades speed for lower host RAM).",
+    )
+    parser.add_argument(
+        "--timing-breakdown",
+        action="store_true",
+        help="Run ISC/FID/KID as separate calls and record timing per metric.",
+    )
     return parser.parse_args()
 
 
@@ -52,8 +68,11 @@ def main() -> None:
         real_dir=args.real_dir,
         output_path=output,
         cuda=False if args.cpu else None,
+        batch_size=args.batch_size,
+        save_cpu_ram=args.save_cpu_ram,
         kid_subsets=args.kid_subsets,
         kid_subset_size=args.kid_subset_size,
+        timing_breakdown=args.timing_breakdown,
     )
     print(json.dumps(metrics, indent=2))
     print(f"Saved metrics to {output}")

@@ -101,3 +101,14 @@ The output metrics JSON defaults to:
 
 For quick validation on a small sample folder, reduce KID subset settings:
 `python scripts/evaluate_ddpm.py --fake-dir outputs/eval/samples/ddpm_cifar10_seed0 --kid-subsets 10 --kid-subset-size 100`
+
+Smoke test for evaluation timing helpers (copies only 10 images from each folder into a temp dir, then computes ISC/FID/KID):
+`python scripts/smoke_eval_timing.py --fake-dir outputs/eval/samples/flow_cifar10_seed542 --real-dir outputs/eval/reference/cifar10_test_32 --n 10`
+
+Full evaluation with per-metric timing breakdown (`timing_seconds`) and safer GPU batching (lower `--batch-size` if you hit CUDA OOM on a shared GPU):
+
+### DDPM:
+`python scripts/evaluate_ddpm.py --fake-dir outputs/eval/samples/ddpm_cifar10_seed542 --batch-size 8 --timing-breakdown`
+
+### Flow matching:
+`python scripts/evaluate_flow_matching.py --fake-dir outputs/eval/samples/flow_cifar10_seed542 --batch-size 8 --timing-breakdown`
