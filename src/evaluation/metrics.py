@@ -46,7 +46,7 @@ def compute_torch_fidelity_metrics(
     output_path: str | Path | None = None,
     cuda: bool | None = None,
     isc: bool = True,
-    fid: bool = True,
+    fid: bool = False,
     kid: bool = True,
     kid_subsets: int = 100,
     kid_subset_size: int = 1000,
