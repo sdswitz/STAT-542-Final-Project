@@ -3,31 +3,19 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import torch
 from torch.utils.data import Subset
 from torchvision import datasets
 
+from src.core.data_fraction import random_subset_indices, stratified_subset_indices
 from src.data.transforms import image_transform
 
 
 def _stratified_subset_indices(targets: list[int], train_percent: float, seed: int) -> list[int]:
-    generator = torch.Generator().manual_seed(seed)
-    targets_tensor = torch.as_tensor(targets)
-    indices = []
-
-    for class_id in sorted(targets_tensor.unique().tolist()):
-        class_indices = torch.where(targets_tensor == class_id)[0]
-        keep_count = max(1, round(len(class_indices) * train_percent / 100.0))
-        shuffled = class_indices[torch.randperm(len(class_indices), generator=generator)]
-        indices.extend(shuffled[:keep_count].tolist())
-
-    return sorted(indices)
+    return stratified_subset_indices(targets, train_percent, seed)
 
 
 def _random_subset_indices(num_items: int, train_percent: float, seed: int) -> list[int]:
-    generator = torch.Generator().manual_seed(seed)
-    keep_count = max(1, round(num_items * train_percent / 100.0))
-    return sorted(torch.randperm(num_items, generator=generator)[:keep_count].tolist())
+    return random_subset_indices(num_items, train_percent, seed)
 
 
 def apply_train_subset(train_dataset, config: dict[str, Any]):

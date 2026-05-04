@@ -16,6 +16,7 @@ PyYAML
 tqdm==4.67.3
 wandb
 torch-fidelity
+matplotlib
 
 # Notebook runtime
 jupyterlab

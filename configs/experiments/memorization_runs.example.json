@@ -1,0 +1,26 @@
+{
+  "output_root": "outputs/eval/memorization",
+  "selection": {
+    "model_types": [],
+    "seeds": [],
+    "data_percents": []
+  },
+  "run_matrix": [
+    {
+      "model_type": "ddpm",
+      "seeds": [0, 542],
+      "data_percents": [10, 25, 50],
+      "run_id_template": "ddpm_{pct_tag}_seed{seed}",
+      "run_dir_template": "outputs/runs/ddpm_cifar10_seed{seed}_{pct_tag}",
+      "config": "configs/experiments/ddpm_cifar10.yaml"
+    },
+    {
+      "model_type": "flow",
+      "seeds": [0, 542],
+      "data_percents": [10, 25, 50],
+      "run_id_template": "flow_{pct_tag}_seed{seed}",
+      "run_dir_template": "outputs/runs/flow_cifar10_seed{seed}_{pct_tag}",
+      "config": "configs/experiments/flow_cifar10.yaml"
+    }
+  ]
+}

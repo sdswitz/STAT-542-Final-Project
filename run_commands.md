@@ -101,3 +101,21 @@ The output metrics JSON defaults to:
 
 For quick validation on a small sample folder, reduce KID subset settings:
 `python scripts/evaluate_ddpm.py --fake-dir outputs/eval/samples/ddpm_cifar10_seed0 --kid-subsets 10 --kid-subset-size 100`
+
+
+## Memorization experiment
+
+Create a manifest from the example. The example uses a run matrix for DDPM/flow, seeds 0/542, and 10/25/50% data fractions:
+`cp configs/experiments/memorization_runs.example.json configs/experiments/memorization_runs.local.json`
+
+Either edit the manifest `selection` block or pass CLI filters for the model/seed weights available on the current cluster. For example, smoke-test only DDPM seed 0:
+`python scripts/run_memorization_evaluation.py --manifest configs/experiments/memorization_runs.local.json --model-type ddpm --seed 0 --num-samples 32 --sample-batch-size 32 --limit-checkpoints 1 --skip-fidelity`
+
+If the manifest includes runs that are not present on the current cluster, skip them:
+`python scripts/run_memorization_evaluation.py --manifest configs/experiments/memorization_runs.local.json --model-type flow --seed 542 --num-samples 32 --sample-batch-size 32 --limit-checkpoints 1 --skip-fidelity --skip-missing-checkpoints`
+
+Run the full paper-style evaluation:
+`python scripts/run_memorization_evaluation.py --manifest configs/experiments/memorization_runs.local.json --model-type ddpm --seed 0 --num-samples 10000 --sample-batch-size 256 --sampling-steps 100`
+
+Make plots from the aggregate CSV:
+`python scripts/plot_memorization_results.py --aggregate outputs/eval/memorization/metrics/aggregate_metrics.csv`
